@@ -9,6 +9,9 @@ void __init_ldso_ctors(void);
 
 extern size_t __hwcap, __sysinfo;
 
+extern const Elf64_Rela __rela_iplt_start[] __attribute((weak));
+extern const Elf64_Rela __rela_iplt_end[] __attribute((weak));
+
 void __init_libc(char **envp)
 {
 	size_t i, *auxv, aux[AUX_CNT] = { 0 };
@@ -21,6 +24,13 @@ void __init_libc(char **envp)
 
 	__init_tls(aux);
 	__init_security(aux);
+
+	for (const Elf64_Rela *rel = __rela_iplt_start;
+	                       rel != __rela_iplt_end; ++rel) {
+		Elf64_Addr *const rel_addr = (void *)rel->r_offset;
+		Elf64_Addr value = ((Elf64_Addr (*) (void)) (rel->r_addend))();
+		*rel_addr = value;
+	}
 }
 
 int __libc_start_main(
